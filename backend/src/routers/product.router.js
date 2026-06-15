@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { create, get, deleteById, StatusUpdate, getById, update } from "../controllers/category.controller.js";
+import { create, get, deleteById, StatusUpdate, getById, update, StatusById } from "../controllers/product.controller.js";
 import upload from "../middleware/multer.js"
 
 
@@ -10,5 +10,6 @@ router.patch("/status-update/:id", StatusUpdate);
 router.put("/update/:id", upload.single("image"), update);
 router.delete("/delete/:id", deleteById);
 router.get("/:id", getById);
+router.put("/status/:id", StatusById);
 
 export default router

@@ -13,11 +13,6 @@ const categorySchema = new mongoose.Schema({
        maxlength: 20,
        required: [true, "category slug is required"] 
     },
-    roomId:{
-     type: mongoose.Schema.Types.ObjectId,
-     ref: "rooms"
-    },
-
    image: {
      type: String
     },
@@ -32,4 +27,4 @@ const categorySchema = new mongoose.Schema({
 )
 
   const CategoryModel = mongoose.model("catagories", categorySchema);
-  export default CategoryModel
+export default CategoryModel

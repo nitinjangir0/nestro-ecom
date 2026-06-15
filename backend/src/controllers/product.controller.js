@@ -1,18 +1,22 @@
+import ProductModel from "../model/product.model.js";
 import CategoryModel from "../model/category.model.js";
 import { sendBadRequest, sendConflict, sendCreated, sendNotFound, sendServerError, sendSuccess } from "../utils/response.js"
-
 const get = async (req, res) => {
     try {
-        const query = req.query;
-        const filter = {};
-        const limit = query.limit ? parseInt(query.limit) : 0;
-        if (query.status) filter.status = query.status === "true";
-
-        const categories = await CategoryModel.find(filter).limit(limit);
+       const products = await ProductModel.find().populate([
+        {
+            path: "roomId",
+            select: "_id name slug"
+        },
+         {
+            path: "categoryId",
+            select: "_id name slug"
+        }
+       ]);
         return res.status(200).json({
             success: true,
             message: "Data find",
-            categories
+            products
         })
 
     } catch (error) {
@@ -24,11 +28,11 @@ const get = async (req, res) => {
 const getById = async (req, res) => {
     try {
         const { id } = req.params;
-        const category = await CategoryModel.findById(id)
+        const product = await ProductModel.findById(id)
         return res.status(200).json({
             success: true,
             message: "Data find",
-            category: category
+            product 
         })
 
     } catch (error) {
@@ -37,26 +41,94 @@ const getById = async (req, res) => {
 
 }
 
-
 const create = async (req, res) => {
     try {
 
-        const { name, slug } = req.body;
+        const {
+            roomId,
+            categoryId,
+            name,
+            slug,
+            originalPrice,
+            salePrice,
+            discount,
+            shortDescription,
+            description,
+            material,
+            color,
+            weight,
+            width,
+            height,
+            depth,
+            seoTitle,
+            seoDescription
+        } = req.body;
+console.log(req.body)
 
-        // Cloudinary Image URL
-        const image = req.file.path;
-        console.log(image, "IMAGE")
-        const category = await CategoryModel.findOne({ name });
-        if (category) return sendConflict(res);
-        await CategoryModel.create({ name, slug, image, image });
-        sendCreated(res);
+      //Image URL
+      const thumbnail = req.file?.path || "";
 
+      //check products exists
+      const product = await ProductModel.findOne({
+        $or: [
+            {slug},
+            {name}
+        ]
+      });
+
+      if (product) {
+        return sendConflict(
+            res,
+            "product already exists"
+        );
+      }
+       
+      await ProductModel.create({
+        roomId,
+        categoryId,
+
+        name,
+        slug,
+
+        originalPrice,
+        salePrice,
+        discount,
+
+        shortDescription,
+        description,
+
+        material,
+
+        dimensions: {
+            width,
+            height,
+            depth
+        },
+
+        weight,
+
+        color,
+
+        seoTitle,
+        seoDescription,
+
+        thumbnail
+      })
+
+      sendCreated(
+        res,
+        "product created successfully"
+      );
     } catch (error) {
-        console.log(error, "error")
-        sendServerError(res, "Internal Server Error")
-    }
 
-}
+        console.log(error);
+
+        return sendServerError(
+            res,
+            "Internal Server Error"
+        );
+    }
+};
 
 const update = async (req, res) => {
 
@@ -172,11 +244,39 @@ const StatusUpdate = async (req, res) => {
 
 }
 
+const StatusById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { flag } = req.body;
+        const product = await ProductModel.findById({ _id: id });
+        if (!product) return sendNotFound(res);
+        
+
+
+        await ProductModel.findByIdAndUpdate(
+            { _id: id },
+            {
+                $set: {
+                    [flag]: !product[flag]
+                }
+            }
+
+        )
+
+        sendSuccess(res, "Status Update Sucessfully")
+
+    } catch (error) {
+        sendServerError(res, "Internal Server Error")
+    }
+
+}
+
 export {
     get,
     create,
     StatusUpdate,
     deleteById,
     getById,
-    update
+    update,
+    StatusById
 }
