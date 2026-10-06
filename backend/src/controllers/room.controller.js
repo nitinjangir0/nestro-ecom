@@ -10,8 +10,13 @@ sendSuccess ,
 
 const get = async (req, res) => {
     try {
+         const query = req.query;
+        const filter = {};
+        const limit = query.limit ? parseInt(query.limit) : 0;
+        if (query.status) filter.status = query.status === "true";
 
-        const rooms = await RoomModel.find();
+
+        const rooms = await RoomModel.find( filter ).limit(limit);
         return res.status(200).json({
             success: true,
             message: "Data find",

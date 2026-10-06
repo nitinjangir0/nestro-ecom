@@ -1,25 +1,43 @@
 import CategoryModel from "../model/category.model.js";
 import { sendBadRequest, sendConflict, sendCreated, sendNotFound, sendServerError, sendSuccess } from "../utils/response.js"
+import ProductModel from "../model/product.model.js";
 
 const get = async (req, res) => {
     try {
         const query = req.query;
         const filter = {};
         const limit = query.limit ? parseInt(query.limit) : 0;
+
         if (query.status) filter.status = query.status === "true";
 
         const categories = await CategoryModel.find(filter).limit(limit);
+
+        const categoryWithCount = await Promise.all(
+            categories.map(async (category) => {
+
+                const productCount = await ProductModel.countDocuments({
+                    categoryId: category._id,
+                    status: true
+                });
+
+                return {
+                    ...category.toObject(),
+                    productCount
+                };
+            })
+        );
+
         return res.status(200).json({
             success: true,
             message: "Data find",
-            categories
-        })
+            categories: categoryWithCount
+        });
 
     } catch (error) {
-        sendServerError(res, "Internal Server Error")
+        console.log(error);
+        sendServerError(res, "Internal Server Error");
     }
-
-}
+};
 
 const getById = async (req, res) => {
     try {
@@ -59,67 +77,102 @@ const create = async (req, res) => {
 }
 
 const update = async (req, res) => {
-
     try {
 
         const { id } = req.params;
 
-        const { name, slug, roomId } = req.body;
-
-        // =========================
-        // Check Category Exists
-        // =========================
-        const oldCategory = await CategoryModel.findById(id);
-
-        if (!oldCategory) {
-            return sendNotFound(res, "Category not found");
-        }
-
-        // =========================
-        // Duplicate Name Check
-        // =========================
-        const categoryExists = await CategoryModel.findOne({ name });
-
-        if (categoryExists) {
-            return sendConflict(res, "Category already exists");
-        }
-
-        // =========================
-        // Update Object
-        // =========================
-        const updateData = {
+        const {
+            roomId,
+            categoryId,
             name,
             slug,
-            roomId
-        };
+            originalPrice,
+            salePrice,
+            discount,
+            shortDescription,
+            description,
+            material,
+            color,
+            weight,
+            width,
+            height,
+            depth,
+            seoTitle,
+            seoDescription
+        } = req.body;
 
-        // =========================
-        // If New Image Uploaded
-        // =========================
-        if (req.file) {
+        // Check Product Exists
+        const product = await ProductModel.findById(id);
 
-            // Cloudinary URL
-            updateData.image = req.file.path;
+        if (!product) {
+            return sendNotFound(res, "Product not found");
         }
 
-        // =========================
-        // Update Category
-        // =========================
-        await CategoryModel.findByIdAndUpdate(
+        // Duplicate Name / Slug Check
+        const exists = await ProductModel.findOne({
+            _id: { $ne: id },
+            $or: [
+                { name },
+                { slug }
+            ]
+        });
+
+        if (exists) {
+            return sendConflict(
+                res,
+                "Product with same name or slug already exists"
+            );
+        }
+
+        const updateData = {
+            roomId,
+            categoryId,
+
+            name,
+            slug,
+
+            originalPrice,
+            salePrice,
+            discount,
+
+            shortDescription,
+            description,
+
+            material,
+
+            color,
+            weight,
+
+            dimensions: {
+                width,
+                height,
+                depth
+            },
+
+            seoTitle,
+            seoDescription
+        };
+
+        // Update Thumbnail Only If Uploaded
+        if (req.file) {
+            updateData.thumbnail = req.file.path;
+        }
+
+        await ProductModel.findByIdAndUpdate(
             id,
             updateData,
             {
-                new: true
+                new: true,
+                runValidators: true
             }
         );
 
         return sendSuccess(
             res,
-            "Category updated successfully"
+            "Product Updated Successfully"
         );
 
-    }
-    catch (error) {
+    } catch (error) {
 
         console.log(error);
 
@@ -129,7 +182,6 @@ const update = async (req, res) => {
         );
     }
 };
-
 //Wood
 
 
