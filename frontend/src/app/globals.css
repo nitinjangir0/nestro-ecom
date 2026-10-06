@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  /* यहाँ हमने आपका वो परफेक्ट क्रीम कलर और डार्क टेक्स्ट सेट कर दिया है */
+  --background: #F9F8F6;
+  --foreground: #2C2A29;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+.mySwiper {
+  position: relative;
+  padding-bottom: 60px;
+}
+
+.mySwiper .swiper-pagination {
+  position: absolute;
+  bottom: 0 !important;
+}
+
+.mySwiper .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  background: #999;
+  opacity: 1;
+}
+
+.mySwiper .swiper-pagination-bullet-active {
+  background: #000;
+}
+
+  input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #94663f;
+}
+/* डार्क मोड वाले हिस्से को हटा दिया है ताकि आपका डिज़ाइन 
+   हमेशा प्रीमियम और ओरिजिनल कलर में ही दिखे।
+*/
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
