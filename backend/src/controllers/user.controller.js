@@ -1,7 +1,7 @@
 import UserModel from "../model/user.model.js";
 import { sendBadRequest, sendConflict, sendCreated, sendNotFound, sendServerError, sendSuccess } from "../utils/response.js"
 import sendOtpMail from "../utils/sendOtpMail.js";
-import Cryptr from "Cryptr";
+import Cryptr from "cryptr";
 import generateToken from "../utils/generateToken.js";
 const cryptr = new Cryptr(process.env.CLOUDINARY_API_SECRET);
 
