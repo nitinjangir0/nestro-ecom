@@ -131,12 +131,11 @@ const login = async (req, res) => {
 
         // Send cookie
         res.cookie("jwt", token, {
-            maxAge: 900000,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
             httpOnly: true,
-            secure: false,
-            sameSite: "lax"
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
         });
-
         return sendSuccess(
             res,
             "Login successful",
