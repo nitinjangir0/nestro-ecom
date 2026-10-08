@@ -6,84 +6,55 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 
 export default function Page() {
-
     const router = useRouter();
-
-
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: ""
     });
-
-
     const [loading, setLoading] = useState(false);
-
-
-
     function handleChange(e) {
-
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
-
     }
-
-
-
-
-
     async function registerHandler(e) {
-
         e.preventDefault();
-
-
-        if(
+        if (
             !formData.name ||
             !formData.email ||
             !formData.password
-        ){
-
+        ) {
             toast.error("All fields are required");
             return;
-
         }
-
-
-
         try {
-
             setLoading(true);
-
-
             const response = await client.post(
                 "user/register",
                 formData
             );
-
-
-
-            if(response.data.success){
-
+            if (response.data.success) {
                 toast.success(response.data.message);
 
+                if (response.data.otp) {
+                    toast.success(`Development OTP: ${response.data.otp}`, {
+                        duration: 15000
+                    });
+                }
+
                 setFormData({
-                    name:"",
-                    email:"",
-                    password:""
+                    name: "",
+                    email: "",
+                    password: ""
                 });
 
-                router.push(
-                    `/verify-otp?email=${response.data.user}`
-                );
-
+                router.push(`/verify-otp?email=${response.data.user}`);
             }
 
-
-
         }
-        catch(error){
+        catch (error) {
 
             toast.error(
                 error.response?.data?.message ||
@@ -91,7 +62,7 @@ export default function Page() {
             );
 
         }
-        finally{
+        finally {
 
             setLoading(false);
 
@@ -231,8 +202,8 @@ export default function Page() {
 
                     {
                         loading
-                        ? "Creating..."
-                        : "Create account"
+                            ? "Creating..."
+                            : "Create account"
                     }
 
 
@@ -255,7 +226,7 @@ export default function Page() {
 
                         type="button"
 
-                        onClick={()=>router.push("/login")}
+                        onClick={() => router.push("/login")}
 
                         className="text-[#93633e] ml-2"
 

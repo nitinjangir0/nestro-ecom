@@ -16,13 +16,17 @@ const register = async (req, res) => {
         const mailResponse = await sendOtpMail(email, otp);
         console.log(mailResponse, "mailResponse")
         const passwordHash = cryptr.encrypt(password); await UserModel.create({ name, email, password: passwordHash, otp, otpExpire });
-        return res.status(201).json(
-            {
-                user: email,
-                success: true,
-                message: "User registered successfully. Please check your email for OTP verification."
-            }
-        );
+        const responseData = {
+            user: email,
+            success: true,
+            message: "User registered successfully. Please check your email for OTP verification."
+        };
+
+        if (process.env.NODE_ENV !== "production") {
+            responseData.otp = otp;
+        }
+
+        return res.status(201).json(responseData);
 
 
     } catch (error) {
@@ -63,7 +67,18 @@ const resendOtp = async (req, res) => {
         user.otp = otp;
         user.otpExpire = otpExpire;
         await user.save();
-        return sendSuccess(res, "OTP resent successfully. Please check your email.");
+        if (process.env.NODE_ENV !== "production") {
+            return res.status(200).json({
+                success: true,
+                message: "OTP resent successfully.",
+                otp
+            });
+        }
+
+        return sendSuccess(
+            res,
+            "OTP resent successfully. Please check your email."
+        );
     } catch (error) {
         console.log(error, "error")
         sendServerError(res, "Internal Server Error")
@@ -316,16 +331,16 @@ const updateAddress = async (req, res) => {
 
 
 
-const deleteAddress = async(req,res)=>{
+const deleteAddress = async (req, res) => {
 
-    try{
+    try {
 
         const user = await UserModel.findById(req.user._id);
 
-        if(!user){
+        if (!user) {
             return res.status(404).json({
-                success:false,
-                message:"User not found"
+                success: false,
+                message: "User not found"
             })
         }
 
@@ -339,17 +354,17 @@ const deleteAddress = async(req,res)=>{
 
 
         return res.status(200).json({
-            success:true,
-            message:"Address deleted successfully",
-            addresses:user.addresses
+            success: true,
+            message: "Address deleted successfully",
+            addresses: user.addresses
         })
 
 
-    }catch(error){
+    } catch (error) {
 
         return res.status(500).json({
-            success:false,
-            message:error.message
+            success: false,
+            message: error.message
         })
 
     }
@@ -397,20 +412,20 @@ const changeDefaultAddress = async (req, res) => {
 };
 
 
-const makeDefaultAddress = async (req,res)=>{
+const makeDefaultAddress = async (req, res) => {
     try {
 
         const user = await UserModel.findById(req.user._id);
 
-        if(!user){
+        if (!user) {
             return res.status(404).json({
-                success:false,
-                message:"User not found"
+                success: false,
+                message: "User not found"
             });
         }
 
 
-        user.addresses.forEach((item)=>{
+        user.addresses.forEach((item) => {
             item.isDefault = false;
         });
 
@@ -418,10 +433,10 @@ const makeDefaultAddress = async (req,res)=>{
         const address = user.addresses.id(req.params.id);
 
 
-        if(!address){
+        if (!address) {
             return res.status(404).json({
-                success:false,
-                message:"Address not found"
+                success: false,
+                message: "Address not found"
             });
         }
 
@@ -433,20 +448,20 @@ const makeDefaultAddress = async (req,res)=>{
 
 
         return res.status(200).json({
-            success:true,
-            message:"Default address updated",
-            addresses:user.addresses
+            success: true,
+            message: "Default address updated",
+            addresses: user.addresses
         });
 
 
 
-    } catch(error){
+    } catch (error) {
 
         console.log(error);
 
         return res.status(500).json({
-            success:false,
-            message:error.message
+            success: false,
+            message: error.message
         });
 
     }

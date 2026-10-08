@@ -116,20 +116,43 @@ function OTPVerifyContent() {
         }
     }
 
-    function resendOTP() {
-        setOtp(
-            new Array(6).fill("")
-        );
+    async function resendOTP() {
+        try {
+            setLoading(true);
 
-        setError("");
+            const response = await client.post(
+                "user/resendOtp",
+                {
+                    email
+                }
+            );
 
-        toast.success(
-            "OTP resent successfully"
-        );
+            if (response.data.success) {
+                setOtp(new Array(6).fill(""));
+                setError("");
 
-        inputRefs.current[0]?.focus();
+                toast.success(response.data.message);
+
+                if (response.data.otp) {
+                    toast.success(
+                        `Your verification OTP is: ${response.data.otp}`,
+                        {
+                            duration: 15000
+                        }
+                    );
+                }
+
+                inputRefs.current[0]?.focus();
+            }
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message ||
+                "Unable to resend OTP"
+            );
+        } finally {
+            setLoading(false);
+        }
     }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#f8f5f1] px-5">
 
@@ -210,16 +233,11 @@ function OTPVerifyContent() {
 
                 <button
                     onClick={resendOTP}
-                    className="
-                        mt-6
-                        text-[#93633e]
-                    "
-                >
-                    Resend OTP
+                    disabled={loading}
+                    className="mt-6 text-[#93633e]disabled:opacity-50">
+                    {loading ? "Sending..." : "Resend OTP"}
                 </button>
-
             </div>
-
         </div>
     );
 }
