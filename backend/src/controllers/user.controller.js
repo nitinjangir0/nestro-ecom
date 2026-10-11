@@ -927,19 +927,20 @@ const updateUserRole = async (req, res) => {
 
 
 
+
 const logout = async (req, res) => {
     try {
         res.clearCookie("jwt", {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
+            path: "/",
         });
 
-        return sendSuccess(
-            res,
-            "Logout successful"
-        );
-
+        return sendSuccess(res, "Logout successful");
     } catch (error) {
         console.log("LOGOUT ERROR:", error);
 
