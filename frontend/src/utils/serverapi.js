@@ -63,6 +63,9 @@ export const getMyOrders = async () => {
         const cookieStore = await cookies();
         const token = cookieStore.get("jwt")?.value;
 
+        console.log("My Orders Cookie Found:", Boolean(token));
+        console.log("My Orders Token Length:", token?.length || 0);
+
         const response = await client.get("order/my-orders", {
             headers: {
                 Authorization: token,
@@ -76,16 +79,14 @@ export const getMyOrders = async () => {
         };
 
     } catch (error) {
-
-        console.error(
-            "Get My Orders Error:",
-            error?.response?.data || error.message
-        );
+        console.error("Get My Orders Status:", error?.response?.status);
+        console.error("Get My Orders Data:", error?.response?.data);
+        console.error("Get My Orders Message:", error.message);
 
         return {
             success: false,
             data: [],
-            message: "Internal Server Error",
+            message: error?.response?.data?.message || "Internal Server Error",
         };
     }
 };

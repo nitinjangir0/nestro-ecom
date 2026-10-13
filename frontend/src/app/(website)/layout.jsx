@@ -28,7 +28,7 @@ export default async function RootLayout({ children }) {
   const getMe = await getProfile();
 
   const user = getMe?.success
-    ? getMe.user
+    ? getMe.data
     : null;
 
   return (

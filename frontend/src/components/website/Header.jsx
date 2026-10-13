@@ -8,7 +8,10 @@ import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { client } from "@/utils/helper";
 
-export default function Header({ user }) {
+export default function Header({ user: initialUser }) {
+
+    const [user, setUser] = useState(initialUser || null);
+
     const cartItem = useSelector(
         (store) => store.cart?.items || []
     );
@@ -110,6 +113,25 @@ export default function Header({ user }) {
         setMobileMenuOpen(false);
         setSearchOpen(false);
     }, [pathname]);
+
+    useEffect(() => {
+        const getUserProfile = async () => {
+            try {
+                const response = await client.get("user/profile");
+
+                if (response.data.success) {
+                    setUser(response.data.user);
+                }
+            } catch (error) {
+                console.error(
+                    "Header Profile Error:",
+                    error?.response?.data || error.message
+                );
+            }
+        };
+
+        getUserProfile();
+    }, []);
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-[#E8E1DB] bg-white">
