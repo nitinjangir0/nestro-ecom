@@ -9,6 +9,7 @@ export default async function OrdersPage() {
     const ordersResponse = await getMyOrders();
 
     if (!ordersResponse.success) {
+         console.log("ORDERS FAIL:", ordersResponse);
         redirect("/login");
     }
 
