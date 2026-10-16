@@ -80,20 +80,24 @@ export default function WishlistButton({
             // REMOVE
             // =================================
 
+
             const result = await removeFromWishlist(productId);
 
             if (result.success) {
-    setIsWishlisted(false);
+                setIsWishlisted(false);
 
-    if (onRemove) {
-        onRemove(productId);
-    }
+                toast.info("Removed from wishlist");
+
+                if (onRemove) {
+                    onRemove(productId);
+                }
             } else {
                 toast.error(
                     result.message ||
                     "Failed to remove from wishlist"
                 );
             }
+
         } catch (error) {
             console.error(
                 "Wishlist Error:",
@@ -121,15 +125,13 @@ export default function WishlistButton({
                 flex h-10 w-10 items-center justify-center
                 rounded-full shadow-md
                 transition-all duration-300
-                ${
-                    isWishlisted
-                        ? "bg-white text-red-500"
-                        : "bg-red-500 text-white hover:bg-white hover:text-gray-700"
+                ${isWishlisted
+                    ? "bg-white text-red-500"
+                    : "bg-red-500 text-white hover:bg-white hover:text-gray-700"
                 }
-                ${
-                    loading
-                        ? "cursor-not-allowed opacity-60"
-                        : "hover:scale-105"
+                ${loading
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:scale-105"
                 }
             `}>
             <FaHeart
