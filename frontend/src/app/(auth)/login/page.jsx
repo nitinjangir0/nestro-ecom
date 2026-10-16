@@ -39,21 +39,24 @@ export default function Page() {
             setLoading(true);
 
             // Login
-            const response = await client.post(
-                "user/login",
-                {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify({
                     email,
                     password,
-                }
-            );
+                }),
+            });
 
-            console.log("Login Response:", response.data);
+            const data = await response.json();
 
-            if (!response.data.success) {
-                toast.error(
-                    response.data.message ||
-                    "Unable to login"
-                );
+            console.log("Login Response:", data);
+
+            if (!response.ok || !data.success) {
+                toast.error(data.message || "Unable to login");
                 return;
             }
 
@@ -139,7 +142,7 @@ export default function Page() {
             }
 
             toast.success(
-                response.data.message ||
+                data.message ||
                 "Login successful"
             );
 
@@ -176,8 +179,7 @@ export default function Page() {
              * Wrong password / other login error
              */
             toast.error(
-                error.response?.data?.message ||
-                "Invalid email or password"
+                error.message || "Unable to connect to the server"
             );
 
         } finally {

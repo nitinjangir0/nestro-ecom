@@ -12,7 +12,7 @@ export const getProfile = async () => {
         const token = cookieStore.get("jwt")?.value;
 
         console.log("Profile Cookie Found:", Boolean(token));
-console.log("Profile Token Length:", token?.length || 0);
+        console.log("Profile Token Length:", token?.length || 0);
 
         // User logged in nahi hai
         // to profile API call hi mat karo
