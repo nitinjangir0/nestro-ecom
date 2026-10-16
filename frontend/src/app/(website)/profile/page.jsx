@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { client } from "@/utils/helper";
 
 import ProfileCard from "@/components/website/ProfileCard";
 import ProfileMenu from "@/components/website/ProfileMenu";
@@ -19,23 +19,29 @@ export default function ProfilePage() {
 
         const getUserProfile = async () => {
             try {
-                const response = await client.get("user/profile");
+                const response = await fetch("/api/user/profile", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                });
 
-                if (!response.data.success || !response.data.user) {
+                const data = await response.json();
+
+                if (!response.ok || !data.success || !data.user) {
                     router.replace("/login");
                     return;
                 }
 
                 if (!active) return;
 
-                const profileUser = response.data.user;
+                const profileUser = data.user;
                 const role = profileUser.role?.toLowerCase();
 
                 const isAdmin =
                     role === "admin" ||
                     role === "superadmin";
 
-                const profileMenus = response.data.menu || [];
+                const profileMenus = data.menu || [];
 
                 const updatedMenus = isAdmin
                     ? [
@@ -54,10 +60,7 @@ export default function ProfilePage() {
                 setUser(profileUser);
                 setMenus(updatedMenus);
             } catch (error) {
-                console.error(
-                    "Profile API Error:",
-                    error?.response?.data || error.message
-                );
+                console.error("Profile API Error:", error);
 
                 if (active) {
                     router.replace("/login");
