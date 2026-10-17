@@ -271,116 +271,43 @@ export const fetchProductBySlug = async (slug) => {
 // WISHLIST
 // ===============================
 
-export const addToWishlist = async (productId) => {
+const wishlistRequest = async (path, method = "GET") => {
     try {
+        const response = await fetch(`/api/wishlist${path}`, {
+            method,
+            credentials: "same-origin",
+            cache: "no-store",
+        });
 
-        const response = await client.post(
-            `wishlist/add/${productId}`
-        );
+        const data = await response.json();
 
         return {
-            success: response.data.success,
-            message: response.data.message,
-            isWishlisted: response.data.isWishlisted,
+            success: response.ok && data.success,
+            message: data.message,
+            isWishlisted: data.isWishlisted,
+            wishlist: data.wishlist || [],
         };
-
     } catch (error) {
-
-        console.log(
-            "Add Wishlist Error:",
-            error?.response?.data || error.message
-        );
+        console.error("Wishlist API Error:", error);
 
         return {
             success: false,
-            message:
-                error?.response?.data?.message ||
-                "Internal Server Error",
+            message: "Unable to connect to wishlist service",
             isWishlisted: false,
-        };
-    }
-};
-
-
-export const removeFromWishlist = async (productId) => {
-    try {
-
-        const response = await client.delete(
-            `wishlist/remove/${productId}`
-        );
-
-        return {
-            success: response.data.success,
-            message: response.data.message,
-            isWishlisted: response.data.isWishlisted,
-        };
-
-    } catch (error) {
-
-        console.log(
-            "Remove Wishlist Error:",
-            error?.response?.data || error.message
-        );
-
-        return {
-            success: false,
-            message:
-                error?.response?.data?.message ||
-                "Internal Server Error",
-            isWishlisted: true,
-        };
-    }
-};
-
-
-export const checkWishlist = async (productId) => {
-    try {
-
-        const response = await client.get(
-            `wishlist/check/${productId}`
-        );
-
-        return {
-            success: response.data.success,
-            isWishlisted: response.data.isWishlisted,
-        };
-
-    } catch (error) {
-
-        console.log(
-            "Check Wishlist Error:",
-            error?.response?.data || error.message
-        );
-
-        return {
-            success: false,
-            isWishlisted: false,
-        };
-    }
-};
-
-
-export const getWishlist = async () => {
-    try {
-        const response = await client.get("wishlist");
-
-        return {
-            success: response.data.success,
-            wishlist: response.data.wishlist || [],
-            message: response.data.message,
-        };
-    } catch (error) {
-        console.log(
-            "Get Wishlist Error:",
-            error?.response?.data || error.message
-        );
-
-        return {
-            success: false,
             wishlist: [],
-            message:
-                error?.response?.data?.message ||
-                "Failed to fetch wishlist",
         };
     }
 };
+
+export const addToWishlist = async (productId) =>
+    wishlistRequest(`/add/${encodeURIComponent(productId)}`, "POST");
+
+export const removeFromWishlist = async (productId) =>
+    wishlistRequest(`/remove/${encodeURIComponent(productId)}`, "DELETE");
+
+export const checkWishlist = async (productId) =>
+    wishlistRequest(`/check/${encodeURIComponent(productId)}`);
+
+export const getWishlist = async () =>
+    wishlistRequest("");
+
