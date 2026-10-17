@@ -1,7 +1,6 @@
 "use client";
 
 import Checkout from "@/components/website/Checkout";
-import { client } from "@/utils/helper";
 import { useEffect, useState } from "react";
 
 export default function Page() {
@@ -11,16 +10,25 @@ export default function Page() {
     useEffect(() => {
         const getUserProfile = async () => {
             try {
-                const response = await client.get("user/profile");
+                const response = await fetch("/api/user/profile", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                });
 
-                if (response.data.success) {
-                    setUser(response.data.user);
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    console.error(
+                        "Checkout Profile Error:",
+                        data.message || "Failed to fetch profile"
+                    );
+                    return;
                 }
+
+                setUser(data.user || data.data || null);
             } catch (error) {
-                console.error(
-                    "Checkout Profile Error:",
-                    error?.response?.data || error.message
-                );
+                console.error("Checkout Profile Error:", error);
             } finally {
                 setLoading(false);
             }
