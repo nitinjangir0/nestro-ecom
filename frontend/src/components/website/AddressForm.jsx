@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { client } from "@/utils/helper";
 import { toast } from "react-toastify";
 
 export default function AddressForm({
@@ -162,6 +161,7 @@ export default function AddressForm({
         resetForm();
     };
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -175,55 +175,54 @@ export default function AddressForm({
         try {
             setLoading(true);
 
-            let response;
+            const url = editAddress
+                ? `/api/user/addresses/${editAddress._id}`
+                : "/api/user/addresses";
+
+            const response = await fetch(url, {
+                method: editAddress ? "PUT" : "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "same-origin",
+                cache: "no-store",
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Something went wrong");
+            }
+
+            toast.success(data.message);
+
+            const updatedAddresses = data.addresses || [];
+            setAddresses(updatedAddresses);
 
             if (editAddress) {
-                response = await client.put(
-                    `/user/update-address/${editAddress._id}`,
-                    formData
-                );
+                setSelectedAddress?.(editAddress._id);
             } else {
-                response = await client.post(
-                    "/user/add-address",
-                    formData
-                );
-            }
+                const latestAddress =
+                    updatedAddresses[updatedAddresses.length - 1];
 
-            if (response.data.success) {
-                toast.success(response.data.message);
-
-                const updatedAddresses = response.data.addresses;
-
-                setAddresses(updatedAddresses);
-
-                if (editAddress) {
-                    setSelectedAddress?.(editAddress._id);
-                } else {
-                    const latestAddress =
-                        updatedAddresses[updatedAddresses.length - 1];
-
-                    if (latestAddress) {
-                        setSelectedAddress?.(latestAddress._id);
-                    }
+                if (latestAddress) {
+                    setSelectedAddress?.(latestAddress._id);
                 }
-
-                setShowForm(false);
-                setEditAddress(null);
-                resetForm();
-            } else {
-                toast.error(response.data.message);
             }
-        } catch (error) {
-            console.error(error);
 
-            toast.error(
-                error.response?.data?.message ||
-                "Something went wrong"
-            );
+            setShowForm(false);
+            setEditAddress(null);
+            resetForm();
+        } catch (error) {
+            console.error("Address Save Error:", error);
+
+            toast.error(error.message || "Something went wrong");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2 sm:p-4">
@@ -257,8 +256,8 @@ export default function AddressForm({
                                 value={formData.fullname}
                                 onChange={handleChange}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.fullname
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -279,8 +278,8 @@ export default function AddressForm({
                                 inputMode="numeric"
                                 maxLength={10}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.mobile
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -301,8 +300,8 @@ export default function AddressForm({
                                 inputMode="numeric"
                                 maxLength={6}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.pincode
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -321,8 +320,8 @@ export default function AddressForm({
                                 value={formData.city}
                                 onChange={handleChange}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.city
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -341,8 +340,8 @@ export default function AddressForm({
                                 value={formData.state}
                                 onChange={handleChange}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.state
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -361,8 +360,8 @@ export default function AddressForm({
                                 value={formData.country}
                                 onChange={handleChange}
                                 className={`w-full rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.country
-                                        ? "border-red-500"
-                                        : "border-gray-300"
+                                    ? "border-red-500"
+                                    : "border-gray-300"
                                     }`}
                             />
 
@@ -382,8 +381,8 @@ export default function AddressForm({
                             value={formData.addressLine}
                             onChange={handleChange}
                             className={`min-h-[110px] w-full resize-y rounded-lg border p-3 text-sm outline-none transition focus:border-amber-700 sm:text-base ${errors.addressLine
-                                    ? "border-red-500"
-                                    : "border-gray-300"
+                                ? "border-red-500"
+                                : "border-gray-300"
                                 }`}
                         />
 
