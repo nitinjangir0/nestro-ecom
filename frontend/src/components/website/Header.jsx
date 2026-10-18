@@ -114,24 +114,29 @@ export default function Header({ user: initialUser }) {
         setSearchOpen(false);
     }, [pathname]);
 
+
     useEffect(() => {
         const getUserProfile = async () => {
             try {
-                const response = await client.get("user/profile");
+                const response = await fetch("/api/user/profile", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                });
 
-                if (response.data.success) {
-                    setUser(response.data.user);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    setUser(data.user || data.data || null);
                 }
             } catch (error) {
-                console.error(
-                    "Header Profile Error:",
-                    error?.response?.data || error.message
-                );
+                console.error("Header Profile Error:", error);
             }
         };
 
         getUserProfile();
     }, []);
+
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-[#E8E1DB] bg-white">
