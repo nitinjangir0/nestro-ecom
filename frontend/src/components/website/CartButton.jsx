@@ -4,7 +4,6 @@ import { addToCart } from "@/redux/features/cartSlice";
 import React from "react";
 import { FaPlus } from "react-icons/fa";
 import { useDispatch } from "react-redux";
-import { client } from "@/utils/helper";
 import { toast } from "react-toastify";
 
 export default function CartButton({ product, user }) {
@@ -35,21 +34,23 @@ export default function CartButton({ product, user }) {
             }
 
             // Logged-in user
-            // Backend cart mein add karo
-            const response = await client.post(
-                "cart/add-to-cart",
-                {
+            const response = await fetch("/api/cart/add-to-cart", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "same-origin",
+                cache: "no-store",
+                body: JSON.stringify({
                     productId: product._id,
                     qty: 1,
-                }
-            );
+                }),
+            });
 
-            if (!response.data.success) {
-                toast.error(
-                    response.data.message || "Unable to add product"
-                );
+            const data = await response.json();
 
-                return;
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Unable to add product");
             }
 
             // Redux + localStorage update
@@ -57,12 +58,11 @@ export default function CartButton({ product, user }) {
 
             toast.success("Product added to cart");
 
-        } catch (error) {
+        }  catch (error) {
             console.error("Add to Cart Error:", error);
 
             toast.error(
-                error.response?.data?.message ||
-                "Unable to add product to cart"
+                error.message || "Unable to add product to cart"
             );
         }
     }
