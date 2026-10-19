@@ -1,9 +1,9 @@
+
 "use client";
 
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import { client } from "@/utils/helper";
 import { toast } from "react-toastify";
 import { useRazorpay } from "react-razorpay";
 import { emptyCart } from "@/redux/features/cartSlice";
@@ -16,10 +16,6 @@ export default function Checkout({ user }) {
     const router = useRouter();
     const dispatch = useDispatch();
 
-    // =========================
-    // REDUX CART
-    // =========================
-
     const finalTotal = useSelector(
         (state) => state.cart.final_total
     );
@@ -28,10 +24,6 @@ export default function Checkout({ user }) {
         (state) => state.cart.items
     );
 
-    // =========================
-    // ADDRESS STATES
-    // =========================
-
     const [editAddress, setEditAddress] = useState(null);
 
     const [addresses, setAddresses] = useState(
@@ -39,9 +31,7 @@ export default function Checkout({ user }) {
     );
 
     const [selectedAddress, setSelectedAddress] = useState(
-        user?.addresses?.find(
-            (item) => item.isDefault
-        )?._id ||
+        user?.addresses?.find((item) => item.isDefault)?._id ||
         user?.addresses?.[0]?._id ||
         ""
     );
@@ -51,12 +41,7 @@ export default function Checkout({ user }) {
     const [showAllAddresses, setShowAllAddresses] =
         useState(false);
 
-    const [paymentMethod, setPaymentMethod] =
-        useState("cod");
-
-    // =====================================================
-    // PLACE ORDER
-    // =====================================================
+    const [paymentMethod, setPaymentMethod] = useState("cod");
 
     async function orderHandler() {
         if (!selectedAddress) {
@@ -71,8 +56,7 @@ export default function Checkout({ user }) {
 
         const selectedAddressData = addresses.find(
             (item) =>
-                item._id?.toString() ===
-                selectedAddress?.toString()
+                item._id?.toString() === selectedAddress?.toString()
         );
 
         if (!selectedAddressData) {
@@ -86,24 +70,12 @@ export default function Checkout({ user }) {
                     selectedAddressData.fullName ||
                     selectedAddressData.fullname ||
                     "",
-
-                mobile:
-                    selectedAddressData.mobile || "",
-
-                pincode:
-                    selectedAddressData.pincode || "",
-
-                addressLine:
-                    selectedAddressData.addressLine || "",
-
-                city:
-                    selectedAddressData.city || "",
-
-                state:
-                    selectedAddressData.state || "",
-
-                country:
-                    selectedAddressData.country || "India",
+                mobile: selectedAddressData.mobile || "",
+                pincode: selectedAddressData.pincode || "",
+                addressLine: selectedAddressData.addressLine || "",
+                city: selectedAddressData.city || "",
+                state: selectedAddressData.state || "",
+                country: selectedAddressData.country || "India",
             };
 
             if (!shippingAddress.fullName) {
@@ -136,88 +108,89 @@ export default function Checkout({ user }) {
                 return;
             }
 
-            const response = await client.post(
-                "order/place",
-                {
+            const response = await fetch("/api/order/place", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "same-origin",
+                cache: "no-store",
+                body: JSON.stringify({
                     shippingAddress,
                     paymentMethod,
-                }
-            );
+                }),
+            });
 
-            // =================================================
+            const responseData = await response.json();
+
+            if (!response.ok || !responseData.success) {
+                throw new Error(
+                    responseData.message || "Unable to place order"
+                );
+            }
+
             // COD
-            // =================================================
-
             if (paymentMethod === "cod") {
-                if (response.data?.success) {
-                    dispatch(emptyCart());
+                dispatch(emptyCart());
 
-                    if (typeof window !== "undefined") {
-                        localStorage.removeItem("cart");
-                    }
-
-                    toast.success(
-                        response.data.message ||
-                        "Order placed successfully"
-                    );
-
-                    router.push(
-                        `/thank-you?orderId=${response.data.orderId}`
-                    );
-
-                    return;
+                if (typeof window !== "undefined") {
+                    localStorage.removeItem("cart");
                 }
 
-                toast.error(
-                    response.data?.message ||
-                    "Unable to place order"
+                toast.success(
+                    responseData.message || "Order placed successfully"
+                );
+
+                router.push(
+                    `/thank-you?orderId=${responseData.orderId}`
                 );
 
                 return;
             }
 
-            // =================================================
             // ONLINE PAYMENT - RAZORPAY
-            // =================================================
-
             if (paymentMethod === "online") {
+                if (!Razorpay) {
+                    toast.error(
+                        error?.message || "Payment gateway is not ready"
+                    );
+                    return;
+                }
+
                 const options = {
-                    key:
-                        process.env
-                            .NEXT_PUBLIC_RAZORPAY_API_Key,
-
+                    key: process.env.NEXT_PUBLIC_RAZORPAY_API_Key,
                     currency: "INR",
-
-                    amount:
-                        response.data.razorpay_amount,
-
+                    amount: responseData.razorpay_amount,
                     name: "Nextro Pvt Ltd",
-
                     description: "Test Transaction",
-
-                    order_id:
-                        response.data.razorpay_order_id,
+                    order_id: responseData.razorpay_order_id,
 
                     handler: async (razorpayResponse) => {
                         try {
-                            const verifyResponse =
-                                await client.post(
-                                    "order/verify",
-                                    razorpayResponse
-                                );
+                            const verifyResponse = await fetch(
+                                "/api/order/verify",
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    credentials: "same-origin",
+                                    cache: "no-store",
+                                    body: JSON.stringify(razorpayResponse),
+                                }
+                            );
+
+                            const verifyData =
+                                await verifyResponse.json();
 
                             if (
-                                verifyResponse.data?.success
+                                verifyResponse.ok &&
+                                verifyData?.success
                             ) {
                                 dispatch(emptyCart());
 
-                                if (
-                                    typeof window !==
-                                    "undefined"
-                                ) {
-                                    localStorage.removeItem(
-                                        "cart"
-                                    );
+                                if (typeof window !== "undefined") {
+                                    localStorage.removeItem("cart");
                                 }
 
                                 toast.success(
@@ -225,35 +198,30 @@ export default function Checkout({ user }) {
                                 );
 
                                 router.push(
-                                    `/thank-you?orderId=${response.data.orderId}`
+                                    `/thank-you?orderId=${responseData.orderId}`
                                 );
                             } else {
                                 toast.error(
-                                    verifyResponse.data?.message ||
+                                    verifyData?.message ||
                                     "Payment verification failed"
                                 );
                             }
-                        } catch (error) {
+                        } catch (verificationError) {
                             console.error(
                                 "Payment Verification Error:",
-                                error
+                                verificationError
                             );
 
                             toast.error(
-                                error?.response?.data?.message ||
+                                verificationError?.message ||
                                 "Payment verification failed"
                             );
                         }
                     },
 
                     prefill: {
-                        name:
-                            user?.name || "john",
-
-                        email:
-                            user?.email ||
-                            "john.doe@gmail.com",
-
+                        name: user?.name || "john",
+                        email: user?.email || "john.doe@gmail.com",
                         contact: 9602861467,
                     },
 
@@ -262,47 +230,34 @@ export default function Checkout({ user }) {
                     },
                 };
 
-                const razorpayInstance =
-                    new Razorpay(options);
-
+                const razorpayInstance = new Razorpay(options);
                 razorpayInstance.open();
 
                 return;
             }
 
             toast.error("Invalid payment method");
-
         } catch (error) {
-            console.error(
-                "Place Order Error:",
-                error
-            );
+            console.error("Place Order Error:", error);
 
             toast.error(
-                error?.response?.data?.message ||
-                "Internal Server Error"
+                error?.message || "Internal Server Error"
             );
         }
     }
-
-    // =====================================================
-    // DELETE ADDRESS
-    // =====================================================
 
     const handleDeleteAddress = (updatedAddresses) => {
         setAddresses(updatedAddresses);
 
         const exist = updatedAddresses.find(
             (item) =>
-                item._id?.toString() ===
-                selectedAddress?.toString()
+                item._id?.toString() === selectedAddress?.toString()
         );
 
         if (!exist) {
-            const defaultAddress =
-                updatedAddresses.find(
-                    (item) => item.isDefault
-                );
+            const defaultAddress = updatedAddresses.find(
+                (item) => item.isDefault
+            );
 
             setSelectedAddress(
                 defaultAddress?._id ||
@@ -312,57 +267,50 @@ export default function Checkout({ user }) {
         }
     };
 
-    // =====================================================
-    // MAKE DEFAULT ADDRESS
-    // =====================================================
-
     const handleDefaultAddress = async (id) => {
         try {
-            const response = await client.put(
-                `/user/default-address/${id}`
+            const response = await fetch(
+                `/api/user/addresses/${id}?action=default`,
+                {
+                    method: "PUT",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                }
             );
 
-            if (response.data.success) {
-                toast.success(
-                    response.data.message
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Something went wrong"
                 );
+            }
 
-                setAddresses(
-                    response.data.addresses
-                );
+            toast.success(data.message);
 
-                setShowAllAddresses(false);
+            setAddresses(data.addresses);
+            setShowAllAddresses(false);
 
-                const defaultAddress =
-                    response.data.addresses.find(
-                        (item) => item.isDefault
-                    );
+            const defaultAddress = data.addresses.find(
+                (item) => item.isDefault
+            );
 
-                if (defaultAddress) {
-                    setSelectedAddress(
-                        defaultAddress._id
-                    );
-                }
+            if (defaultAddress) {
+                setSelectedAddress(defaultAddress._id);
             }
         } catch (error) {
+            console.error("Default Address Error:", error);
+
             toast.error(
-                error?.response?.data?.message ||
-                "Something went wrong"
+                error?.message || "Something went wrong"
             );
         }
     };
 
-    // =====================================================
-    // UI
-    // =====================================================
-
     return (
         <div className="bg-stone-50 min-h-screen py-5 sm:py-8">
-
             <div className="max-w-7xl mx-auto px-3 sm:px-4">
-
                 {/* HEADER */}
-
                 <h1
                     className="
                         text-2xl
@@ -385,63 +333,34 @@ export default function Checkout({ user }) {
                         sm:gap-8
                     "
                 >
-
-                    {/* =========================================
-                        ADDRESS SECTION
-                    ========================================= */}
-
+                    {/* ADDRESS SECTION */}
                     <div className="lg:col-span-2 min-w-0">
-
                         <AddressList
                             addresses={addresses}
                             selectedAddress={selectedAddress}
-                            setSelectedAddress={
-                                setSelectedAddress
-                            }
+                            setSelectedAddress={setSelectedAddress}
                             setShowForm={setShowForm}
-                            setEditAddress={
-                                setEditAddress
-                            }
-                            handleDeleteAddress={
-                                handleDeleteAddress
-                            }
-                            handleDefaultAddress={
-                                handleDefaultAddress
-                            }
-                            showAllAddresses={
-                                showAllAddresses
-                            }
-                            setShowAllAddresses={
-                                setShowAllAddresses
-                            }
-                            paymentMethod={
-                                paymentMethod
-                            }
-                            setPaymentMethod={
-                                setPaymentMethod
-                            }
+                            setEditAddress={setEditAddress}
+                            handleDeleteAddress={handleDeleteAddress}
+                            handleDefaultAddress={handleDefaultAddress}
+                            showAllAddresses={showAllAddresses}
+                            setShowAllAddresses={setShowAllAddresses}
+                            paymentMethod={paymentMethod}
+                            setPaymentMethod={setPaymentMethod}
                         />
 
                         {showForm && (
                             <AddressForm
                                 setShowForm={setShowForm}
                                 setAddresses={setAddresses}
-                                setSelectedAddress={
-                                    setSelectedAddress
-                                }
+                                setSelectedAddress={setSelectedAddress}
                                 editAddress={editAddress}
-                                setEditAddress={
-                                    setEditAddress
-                                }
+                                setEditAddress={setEditAddress}
                             />
                         )}
-
                     </div>
 
-                    {/* =========================================
-                        ORDER SUMMARY
-                    ========================================= */}
-
+                    {/* ORDER SUMMARY */}
                     <div
                         className="
                             bg-white
@@ -456,7 +375,6 @@ export default function Checkout({ user }) {
                             lg:top-5
                         "
                     >
-
                         <h2
                             className="
                                 text-lg
@@ -471,9 +389,7 @@ export default function Checkout({ user }) {
                         </h2>
 
                         <div className="space-y-3 sm:space-y-4">
-
                             {/* SUBTOTAL */}
-
                             <div
                                 className="
                                     flex
@@ -483,20 +399,17 @@ export default function Checkout({ user }) {
                                     text-sm
                                 "
                             >
-                                <span>
-                                    Subtotal
-                                </span>
+                                <span>Subtotal</span>
 
                                 <span className="font-medium">
                                     ₹
-                                    {Number(
-                                        finalTotal
-                                    ).toLocaleString("en-IN")}
+                                    {Number(finalTotal).toLocaleString(
+                                        "en-IN"
+                                    )}
                                 </span>
                             </div>
 
                             {/* SHIPPING */}
-
                             <div
                                 className="
                                     flex
@@ -506,9 +419,7 @@ export default function Checkout({ user }) {
                                     text-sm
                                 "
                             >
-                                <span>
-                                    Shipping
-                                </span>
+                                <span>Shipping</span>
 
                                 <span
                                     className="
@@ -523,7 +434,6 @@ export default function Checkout({ user }) {
                             <hr />
 
                             {/* TOTAL */}
-
                             <div
                                 className="
                                     flex
@@ -535,28 +445,25 @@ export default function Checkout({ user }) {
                                     font-bold
                                 "
                             >
-                                <span>
-                                    Total
-                                </span>
+                                <span>Total</span>
 
                                 <span className="text-amber-900">
                                     ₹
-                                    {Number(
-                                        finalTotal
-                                    ).toLocaleString("en-IN")}
+                                    {Number(finalTotal).toLocaleString(
+                                        "en-IN"
+                                    )}
                                 </span>
                             </div>
-
                         </div>
 
                         {/* PLACE ORDER BUTTON */}
-
                         <button
                             type="button"
                             onClick={orderHandler}
                             disabled={
                                 !selectedAddress ||
-                                !cartItems.length
+                                !cartItems.length ||
+                                isLoading
                             }
                             className={`
                                 w-full
@@ -568,10 +475,8 @@ export default function Checkout({ user }) {
                                 text-sm
                                 sm:text-base
                                 transition
-
                                 ${
-                                    selectedAddress &&
-                                    cartItems.length
+                                    selectedAddress && cartItems.length
                                         ? `
                                             bg-amber-900
                                             text-white
@@ -587,13 +492,9 @@ export default function Checkout({ user }) {
                         >
                             Place Order
                         </button>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
     );
 }
