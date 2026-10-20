@@ -1,10 +1,6 @@
 "use client";
 
-import {
-    removeFromcart,
-    increaseQuantity,
-    decreaseQuantity,
-} from "@/redux/features/cartSlice";
+import { removeFromcart, increaseQuantity, decreaseQuantity, } from "@/redux/features/cartSlice";
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
@@ -17,6 +13,7 @@ export default function CartPage() {
 
     const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+
     async function handleCheckout() {
         if (!cart?.items?.length) {
             return;
@@ -25,25 +22,30 @@ export default function CartPage() {
         try {
             setCheckoutLoading(true);
 
-            // Check whether user is logged in
-            await client.get("user/profile");
+            const response = await fetch("/api/user/profile", {
+                method: "GET",
+                credentials: "same-origin",
+                cache: "no-store",
+            });
 
-            // User is logged in
-            router.push("/checkout");
-        } catch (error) {
-            // User is not logged in
-            if (typeof window !== "undefined") {
-                sessionStorage.setItem(
-                    "loginRedirect",
-                    "/checkout"
-                );
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                sessionStorage.setItem("loginRedirect", "/checkout");
+                router.push("/login");
+                return;
             }
 
+            router.push("/checkout");
+        } catch (error) {
+            console.error("Checkout authentication error:", error);
+            sessionStorage.setItem("loginRedirect", "/checkout");
             router.push("/login");
         } finally {
             setCheckoutLoading(false);
         }
     }
+
 
     return (
         <div className="min-h-screen bg-gray-100 py-6 sm:py-10">
@@ -320,11 +322,10 @@ export default function CartPage() {
                                 transition
                                 text-sm
                                 sm:text-base
-                                ${
-                                    cart?.items?.length &&
+                                ${cart?.items?.length &&
                                     !checkoutLoading
-                                        ? "bg-black text-white hover:bg-gray-800 cursor-pointer"
-                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    ? "bg-black text-white hover:bg-gray-800 cursor-pointer"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 }
                             `}
                         >
