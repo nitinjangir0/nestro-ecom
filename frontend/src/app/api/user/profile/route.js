@@ -6,6 +6,10 @@ export async function GET() {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get("jwt")?.value;
+        console.log("[PROFILE DEBUG]", {
+    jwtFound: Boolean(token),
+    tokenLength: token?.length ?? 0,
+});
         const backendUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
         if (!token) {
