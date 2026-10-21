@@ -9,11 +9,17 @@ const sendOtpMail = async (toEmail, otp) => {
         }
 
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            family: 4,
             auth: {
                 user: EMAIL_USER,
                 pass: EMAIL_PASS,
             },
+            connectionTimeout: 20000,
+            greetingTimeout: 20000,
+            socketTimeout: 30000,
         });
 
         const info = await transporter.sendMail({
@@ -32,7 +38,6 @@ const sendOtpMail = async (toEmail, otp) => {
         });
 
         console.log("OTP email sent:", info.messageId);
-
         return "OTP Email sent successfully";
     } catch (error) {
         console.error("OTP email sending failed:", error.message);
