@@ -5,62 +5,56 @@ import Cryptr from "cryptr";
 import generateToken from "../utils/generateToken.js";
 const cryptr = new Cryptr(process.env.CLOUDINARY_API_SECRET);
 
+
 const register = async (req, res) => {
     try {
         let { name, email, password } = req.body;
 
         if (!name || !email || !password) {
-            return sendBadRequest(res, "Name, email and password are required");
+            return sendBadRequest(
+                res,
+                "Name, email and password are required"
+            );
         }
 
         name = name.trim();
         email = email.trim().toLowerCase();
 
-        const user = await UserModel.findOne({ email });
+        if (password.length < 6) {
+            return sendBadRequest(
+                res,
+                "Password must be at least 6 characters"
+            );
+        }
 
-        if (user) {
+        const existingUser = await UserModel.findOne({ email });
+
+        if (existingUser) {
             return sendConflict(res, "User already exists");
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000);
-        const otpExpire = Date.now() + 3 * 60 * 1000;
-
-        await sendOtpMail(email, otp);
-
         const passwordHash = cryptr.encrypt(password);
 
-        await UserModel.create({
+        const user = await UserModel.create({
             name,
             email,
             password: passwordHash,
-            otp,
-            otpExpire,
+            isVerified: true
         });
 
-        const responseData = {
-            user: email,
+        return res.status(201).json({
             success: true,
-            message: "Registration successful. Please check your email for OTP verification.",
-        };
+            message: "Registration successful. You can now log in.",
+            user: email
+        });
 
-        if (process.env.NODE_ENV !== "production") {
-            responseData.otp = otp;
-        }
-
-        return res.status(201).json(responseData);
     } catch (error) {
         console.error("Registration error:", error.message);
-
-        if (error.message === "OTP email could not be sent") {
-            return res.status(502).json({
-                success: false,
-                message: "Unable to send OTP email. Please try again later.",
-            });
-        }
 
         return sendServerError(res, "Internal Server Error");
     }
 };
+
 
 const verifyOtp = async (req, res) => {
     try {

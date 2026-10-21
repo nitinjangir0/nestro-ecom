@@ -19,30 +19,31 @@ export default function Page() {
             [e.target.name]: e.target.value
         });
     }
+
     async function registerHandler(e) {
         e.preventDefault();
-        if (
-            !formData.name ||
-            !formData.email ||
-            !formData.password
-        ) {
+
+        if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
             toast.error("All fields are required");
             return;
         }
+
+        if (formData.password.length < 6) {
+            toast.error("Password must be at least 6 characters");
+            return;
+        }
+
         try {
             setLoading(true);
-            const response = await client.post(
-                "user/register",
-                formData
-            );
-            if (response.data.success) {
-                toast.success(response.data.message);
 
-                if (response.data.otp) {
-                    toast.success(`Development OTP: ${response.data.otp}`, {
-                        duration: 15000
-                    });
-                }
+            const response = await client.post("user/register", {
+                ...formData,
+                name: formData.name.trim(),
+                email: formData.email.trim().toLowerCase()
+            });
+
+            if (response.data.success) {
+                toast.success("Account created successfully. Please log in.");
 
                 setFormData({
                     name: "",
@@ -50,29 +51,16 @@ export default function Page() {
                     password: ""
                 });
 
-                router.push(`/verify-otp?email=${response.data.user}`);
+                router.push("/login");
             }
-
-        }
-        catch (error) {
-
+        } catch (error) {
             toast.error(
-                error.response?.data?.message ||
-                "Internal Server Error"
+                error.response?.data?.message || "Registration failed. Please try again."
             );
-
-        }
-        finally {
-
+        } finally {
             setLoading(false);
-
         }
-
     }
-
-
-
-
 
     return (
 
