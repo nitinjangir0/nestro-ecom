@@ -1,6 +1,4 @@
 "use client";
-
-import { client } from "@/utils/helper";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -59,16 +57,23 @@ export default function ChangePasswordPage() {
         try {
             setLoading(true);
 
-            const response = await client.put(
-                "user/change-password",
-                formData
-            );
+            const response = await fetch("/api/user/change-password", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(formData),
+            });
 
-            if (response.data.success) {
-                toast.success(
-                    response.data.message ||
-                    "Password changed successfully"
-                );
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Unable to change password");
+            }
+
+            if (data.success) {
+                toast.success(data.message || "Password changed successfully");
 
                 setFormData({
                     currentPassword: "",
@@ -81,10 +86,7 @@ export default function ChangePasswordPage() {
                 }, 1000);
             }
         } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                "Unable to change password"
-            );
+            toast.error(error.message || "Unable to change password");
         } finally {
             setLoading(false);
         }
