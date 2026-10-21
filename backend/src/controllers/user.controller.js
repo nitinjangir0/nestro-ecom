@@ -7,19 +7,40 @@ const cryptr = new Cryptr(process.env.CLOUDINARY_API_SECRET);
 
 const register = async (req, res) => {
     try {
-        const { name, email, password } = req.body
+        let { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return sendBadRequest(res, "Name, email and password are required");
+        }
+
+        name = name.trim();
+        email = email.trim().toLowerCase();
 
         const user = await UserModel.findOne({ email });
-        if (user) return sendConflict(res, "User already exists");
+
+        if (user) {
+            return sendConflict(res, "User already exists");
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpire = Date.now() + 3 * 60 * 1000;
-        const mailResponse = await sendOtpMail(email, otp);
-        console.log(mailResponse, "mailResponse")
-        const passwordHash = cryptr.encrypt(password); await UserModel.create({ name, email, password: passwordHash, otp, otpExpire });
+
+        await sendOtpMail(email, otp);
+
+        const passwordHash = cryptr.encrypt(password);
+
+        await UserModel.create({
+            name,
+            email,
+            password: passwordHash,
+            otp,
+            otpExpire,
+        });
+
         const responseData = {
             user: email,
             success: true,
-            message: "User registered successfully. Please check your email for OTP verification."
+            message: "Registration successful. Please check your email for OTP verification.",
         };
 
         if (process.env.NODE_ENV !== "production") {
@@ -27,14 +48,19 @@ const register = async (req, res) => {
         }
 
         return res.status(201).json(responseData);
-
-
     } catch (error) {
-        console.log(error, "error")
-        sendServerError(res, "Internal Server Error")
-    }
+        console.error("Registration error:", error.message);
 
-}
+        if (error.message === "OTP email could not be sent") {
+            return res.status(502).json({
+                success: false,
+                message: "Unable to send OTP email. Please try again later.",
+            });
+        }
+
+        return sendServerError(res, "Internal Server Error");
+    }
+};
 
 const verifyOtp = async (req, res) => {
     try {
@@ -472,29 +498,19 @@ const forgotPassword = async (req, res) => {
     try {
         let { email } = req.body;
 
-        if (!email) {
-            return sendBadRequest(res, "Email is required");
+        if (!email || typeof email !== "string") {
+            return sendBadRequest(res, "Valid email is required");
         }
 
-        // Email clean + lowercase
         email = email.trim().toLowerCase();
-
-        console.log("FORGOT PASSWORD EMAIL:", email);
 
         const user = await UserModel.findOne({ email });
 
         if (!user) {
-            return sendNotFound(
-                res,
-                "User with this email not found"
-            );
+            return sendNotFound(res, "User with this email not found");
         }
 
-        const otp = Math.floor(
-            100000 + Math.random() * 900000
-        );
-
-        // OTP valid for 3 minutes
+        const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpire = Date.now() + 3 * 60 * 1000;
 
         await sendOtpMail(email, otp);
@@ -508,17 +524,17 @@ const forgotPassword = async (req, res) => {
             res,
             "OTP sent successfully. Please check your email."
         );
-
     } catch (error) {
-        console.log(
-            "FORGOT PASSWORD ERROR:",
-            error
-        );
+        console.error("Forgot password error:", error.message);
 
-        return sendServerError(
-            res,
-            "Internal Server Error"
-        );
+        if (error.message === "OTP email could not be sent") {
+            return res.status(502).json({
+                success: false,
+                message: "Unable to send OTP email. Please try again later.",
+            });
+        }
+
+        return sendServerError(res, "Internal Server Error");
     }
 };
 
