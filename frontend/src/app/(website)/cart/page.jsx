@@ -4,7 +4,6 @@ import {removeFromcart,increaseQuantity,decreaseQuantity,} from "@/redux/feature
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import { client } from "@/utils/helper";
 
 export default function CartPage() {
     const cart = useSelector((store) => store.cart);
@@ -13,33 +12,39 @@ export default function CartPage() {
 
     const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-    async function handleCheckout() {
-        if (!cart?.items?.length) {
+    
+async function handleCheckout() {
+    if (!cart?.items?.length) {
+        return;
+    }
+
+    try {
+        setCheckoutLoading(true);
+
+        const response = await fetch("/api/user/profile", {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            sessionStorage.setItem("loginRedirect", "/checkout");
+            router.push("/login");
             return;
         }
 
-        try {
-            setCheckoutLoading(true);
-
-            // Check whether user is logged in
-            await client.get("user/profile");
-
-            // User is logged in
-            router.push("/checkout");
-        } catch (error) {
-            // User is not logged in
-            if (typeof window !== "undefined") {
-                sessionStorage.setItem(
-                    "loginRedirect",
-                    "/checkout"
-                );
-            }
-
-            router.push("/login");
-        } finally {
-            setCheckoutLoading(false);
-        }
+        router.push("/checkout");
+    } catch (error) {
+        console.error("Checkout authentication error:", error);
+        sessionStorage.setItem("loginRedirect", "/checkout");
+        router.push("/login");
+    } finally {
+        setCheckoutLoading(false);
     }
+}
+
 
     return (
         <div className="min-h-screen bg-gray-100 py-6 sm:py-10">
